@@ -13,24 +13,19 @@
 // information, see the LICENSE file in the top level directory of the
 // distribution.
 
-
-#include <sst/core/sst_config.h>
-
-#include <sst/core/output.h>
-#include <sst/core/component.h>
-
-#include <dmaengine.h>
 #include <dmacmd.h>
-#include <dmastate.h>
+#include <dmaengine.h>
 #include <dmamemop.h>
+#include <dmastate.h>
+#include <sst/core/component.h>
+#include <sst/core/output.h>
+#include <sst/core/sst_config.h>
 
 using namespace SST;
 using namespace SST::Interfaces;
 using namespace SST::Statistics;
 
-DMAEngine::DMAEngine(SST::ComponentId_t id, SST::Params &params) :
-    Component(id) {
-
+DMAEngine::DMAEngine(SST::ComponentId_t id, SST::Params &params) : Component(id) {
     const uint32_t verbose = params.find<uint32_t>("verbose", 0);
     output = new Output("DMAEngine[@p:@l]: ", verbose, 0, SST::Output::STDOUT);
 
@@ -39,14 +34,14 @@ DMAEngine::DMAEngine(SST::ComponentId_t id, SST::Params &params) :
 
     cacheLineSize = params.find<uint64_t>("cache_line_size", 64);
 
-    std::string memInterfaceName = params.find<std::string>("memoryinterface",
-                                                            "memHierarchy.memInterface");
+    std::string memInterfaceName =
+        params.find<std::string>("memoryinterface", "memHierarchy.memInterface");
     output->verbose(CALL_INFO, 2, 0, "Memory interface to be loaded: %s\n",
                     memInterfaceName.c_str());
 
     Params interfaceParams = params.find_prefix_params("memoryinterfaceparams.");
-    cache_link = dynamic_cast<SimpleMem *>( loadModuleWithComponent(interfaceName,
-                                                                    this, interfaceParams));
+    cache_link =
+        dynamic_cast<SimpleMem *>(loadModuleWithComponent(interfaceName, this, interfaceParams));
 
     if (NULL == cache_link) {
         output->fatal(CALL_INFO, -1, "Error loading memory interface module (%s)\n",
@@ -55,27 +50,22 @@ DMAEngine::DMAEngine(SST::ComponentId_t id, SST::Params &params) :
         output->verbose(CALL_INFO, 2, 0, "Memory interface loaded successfully.\n");
     }
 
-    cpuLinkCount = (uint32_t) params.find<uint32_t>("cpu_link_count", 1);
+    cpuLinkCount = (uint32_t)params.find<uint32_t>("cpu_link_count", 1);
 
-    output->verbose(CALL_INFO, 2, 0, "Loading CPU links (total of %"
-    PRIu32
-    " links requested).\n", cpuLinkCount);
-    char *linkNameBuffer = (char *) malloc(sizeof(char) * 256);
-    cpuSideLinks = (SST::Link *) malloc(sizeof(SST::Link) * cpuLinkCount);
+    output->verbose(CALL_INFO, 2, 0, "Loading CPU links (total of %" PRIu32 " links requested).\n",
+                    cpuLinkCount);
+    char *linkNameBuffer = (char *)malloc(sizeof(char) * 256);
+    cpuSideLinks = (SST::Link *)malloc(sizeof(SST::Link) * cpuLinkCount);
 
     for (uint32_t i = 0; i < cpuLinkCount; ++i) {
-        sprintf(linkNameBuffer, "cpu_link_%"
-        PRIu32, i);
+        sprintf(linkNameBuffer, "cpu_link_%" PRIu32, i);
         cpuSideLinks[i] = configureLink(linkNameBuffer);
 
         if (NULL == cpuSideLinks[i]) {
-            output->fatal(CALL_INFO, -1, "Unable to configure DMA-to-CPU link %"
-            PRIu32
-            "\n", i);
+            output->fatal(CALL_INFO, -1, "Unable to configure DMA-to-CPU link %" PRIu32 "\n", i);
         } else {
-            output->verbose(CALL_INFO, 2, 0, "DMA-to-CPU link %"
-            PRIu32
-            " configured successfully.\n", i);
+            output->verbose(CALL_INFO, 2, 0,
+                            "DMA-to-CPU link %" PRIu32 " configured successfully.\n", i);
         }
     }
 
@@ -84,15 +74,10 @@ DMAEngine::DMAEngine(SST::ComponentId_t id, SST::Params &params) :
     output->verbose(CALL_INFO, 1, 0, "=======================================================\n");
     output->verbose(CALL_INFO, 1, 0, "DMA Engine Configuration: (%s)\n", getName().c_str());
     output->verbose(CALL_INFO, 1, 0, "\n");
-    output->verbose(CALL_INFO, 1, 0, "Maximum memory ops in flight:   %"
-    PRIu32
-    "\n", maxInFlight);
-    output->verbose(CALL_INFO, 1, 0, "Cache Line Size (bytes):        %"
-    PRIu64
-    "\n", cacheLineSize);
-    output->verbose(CALL_INFO, 1, 0, "CPU Links:                      %"
-    PRIu32
-    "\n", cpuLinkCount);
+    output->verbose(CALL_INFO, 1, 0, "Maximum memory ops in flight:   %" PRIu32 "\n", maxInFlight);
+    output->verbose(CALL_INFO, 1, 0, "Cache Line Size (bytes):        %" PRIu64 "\n",
+                    cacheLineSize);
+    output->verbose(CALL_INFO, 1, 0, "CPU Links:                      %" PRIu32 "\n", cpuLinkCount);
 }
 
 DMAEngine::~DMAEngine() {
@@ -100,13 +85,9 @@ DMAEngine::~DMAEngine() {
     free(cpuSideLinks);
 }
 
-void DMAEngine::init(unsigned int phase) {
+void DMAEngine::init(unsigned int phase) {}
 
-}
-
-void DMAEngine::finish() {
-
-}
+void DMAEngine::finish() {}
 
 void DMAEngine::issueNextCommand() {
     if (NULL != currentState) {
@@ -142,8 +123,8 @@ void DMAEngine::issueNextCommand() {
         }
 
         // Issue read into the memory system
-        SimpleMem::Request *alignRead = new SimpleMem::Request(SimpleMem::Request::Read,
-                                                               nextCmd->getSrcAddr(), alignDiff);
+        SimpleMem::Request *alignRead =
+            new SimpleMem::Request(SimpleMem::Request::Read, nextCmd->getSrcAddr(), alignDiff);
         pendingRequests->insert(std::pair<SimpleMem::Request::id_t, DMAMemoryOperation *>(
             alignRead->getId(), new DMAMemoryOperation(0, alignDiff)));
 
@@ -151,7 +132,8 @@ void DMAEngine::issueNextCommand() {
         opsInFlight++;
 
         // Keep issuing until we can't do any more
-        while (issueNextReadOperation()) {}
+        while (issueNextReadOperation()) {
+        }
     }
 }
 
@@ -189,35 +171,22 @@ void DMAEngine::handleDMACommandIssue(SST::Event *ev) {
         output->fatal(CALL_INFO, -1, "DMA Engine recv event which did not cast to DMACommand.\n");
     }
 
-    output->verbose(CALL_INFO, 4, 0, "Recv DMACommand: ID=(%"
-    PRIu64
-    ", %"
-    PRIu64
-    "), Src=%"
-    PRIu64
-    ", Dest=%"
-    PRIu64
-    ", Len=%"
-    PRIu64
-    " bytes\n",
-        dmaEv->getCommandID().first, dmaEv->getCommand().second,
-        dmaEv->getSrcAddr(), dmaEv->getDestAddr(), dmaEv->getLength());
     output->verbose(CALL_INFO, 4, 0,
-                    "Enqueuing DMA command in pending queue, current queue length is: %"
-    PRIu32
-    "\n",
-        (uint32_t) cmdQ->size());
+                    "Recv DMACommand: ID=(%" PRIu64 ", %" PRIu64 "), Src=%" PRIu64 ", Dest=%" PRIu64
+                    ", Len=%" PRIu64 " bytes\n",
+                    dmaEv->getCommandID().first, dmaEv->getCommand().second, dmaEv->getSrcAddr(),
+                    dmaEv->getDestAddr(), dmaEv->getLength());
+    output->verbose(CALL_INFO, 4, 0,
+                    "Enqueuing DMA command in pending queue, current queue length is: %" PRIu32
+                    "\n",
+                    (uint32_t)cmdQ->size());
 
     cmdQ->push_back(dmaEv);
 }
 
-void DMAEngine::issueWriteRequest(const uint64_t writeAddr,
-                                  const uint64_t length, char *payload) {
-
-}
+void DMAEngine::issueWriteRequest(const uint64_t writeAddr, const uint64_t length, char *payload) {}
 
 void DMAEngine::handleMemorySystemEvent(Interfaces::SimpleMem::Request *ev) {
-
     std::map<SimpleMem::Request::id_t, DMAMemoryOperation *>::iterator findEv;
     findEv = pendingReadReqs.find(ev->getId());
 
@@ -229,5 +198,3 @@ void DMAEngine::handleMemorySystemEvent(Interfaces::SimpleMem::Request *ev) {
     issueWriteRequest(currentState->getDestAddr() + completedOp->getByteOffset(),
                       completedOp->getLength(), NULL);
 }
-
-

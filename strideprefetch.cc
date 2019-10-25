@@ -13,16 +13,16 @@
 // information, see the LICENSE file in the top level directory of the
 // distribution.
 
-#include <sst/core/sst_config.h>
+#include <sst/core/sst_config.h>  // ORDER OF HEADER SOMEHOW SIGNIFICANT
+
 #include "strideprefetch.h"
 
+#include <cstdlib>
 #include <vector>
-#include "stdlib.h"
 
 #include "sst/core/params.h"
 
-
-#define CASSINI_MIN(a, b) (((a)<(b)) ? a : b)
+#define CASSINI_MIN(a, b) (((a) < (b)) ? a : b)  // unused macro
 
 using namespace SST;
 using namespace SST::Cassini;
@@ -32,8 +32,9 @@ void StridePrefetcher::notifyAccess(const CacheListenerNotification &notify) {
     const NotifyResultType notifyResType = notify.getResultType();
     const Addr addr = notify.getPhysicalAddress();
 
-    if (notifyType == EVICT)  // ignore evictions
+    if (notifyType == EVICT) {  // ignore evictions
         return;
+    }
 
     // Put address into our recent address list
     recentAddrList[nextRecentAddressIndex] = addr;
@@ -43,17 +44,18 @@ void StridePrefetcher::notifyAccess(const CacheListenerNotification &notify) {
 
     notifyResType == MISS ? missEventsProcessed++ : hitEventsProcessed++;
 
-    if (recheckCountdown == 0)
+    if (recheckCountdown == 0) {
         DetectStride();
+    }
 }
 
-Addr StridePrefetcher::getAddressByIndex(uint32_t index) {
+auto StridePrefetcher::getAddressByIndex(uint32_t index) -> Addr {
     return recentAddrList[(nextRecentAddressIndex + 1 + index) % recentAddrListCount];
 }
 
 void StridePrefetcher::DetectStride() {
     /*  Needs to be updated with current MemHierarchy Commands/States, MemHierarchyInterface */
-    MemEvent *ev = NULL;
+    MemEvent *ev = nullptr;
     uint32_t stride;
     bool foundStride = true;
     Addr targetAddress = 0;
@@ -80,19 +82,11 @@ void StridePrefetcher::DetectStride() {
 
                 if (overrunPageBoundary) {
                     output->verbose(CALL_INFO, 2, 0,
-                                    "Issue prefetch, target address: %"
-                    PRIx64
-                    ", prefetch address: %"
-                    PRIx64
-                    " (reach out: %"
-                    PRIu32
-                    ", stride=%"
-                    PRIu32
-                    "), prefetchAddress=%"
-                    PRIu64
-                    "\n",
-                        targetAddress, targetAddress + (strideReach * stride),
-                        (strideReach * stride), stride, targetPrefetchAddress);
+                                    "Issue prefetch, target address: %" PRIx64
+                                    ", prefetch address: %" PRIx64 " (reach out: %" PRIu32
+                                    ", stride=%" PRIu32 "), prefetchAddress=%" PRIu64 "\n",
+                                    targetAddress, targetAddress + (strideReach * stride),
+                                    (strideReach * stride), stride, targetPrefetchAddress);
 
                     statPrefetchOpportunities->addData(1);
 
@@ -113,34 +107,27 @@ void StridePrefetcher::DetectStride() {
                     // we can safely prefetch without causing a page fault, otherwise we
                     // choose to not prefetch the address
                     if (targetAddressPhysPage == targetPrefetchAddressPage) {
-                        output->verbose(CALL_INFO, 2, 0, "Issue prefetch, target address: %"
-                        PRIx64
-                        ", prefetch address: %"
-                        PRIx64
-                        " (reach out: %"
-                        PRIu32
-                        ", stride=%"
-                        PRIu32
-                        ")\n",
-                            targetAddress, targetPrefetchAddress, (strideReach * stride), stride);
+                        output->verbose(CALL_INFO, 2, 0,
+                                        "Issue prefetch, target address: %" PRIx64
+                                        ", prefetch address: %" PRIx64 " (reach out: %" PRIu32
+                                        ", stride=%" PRIu32 ")\n",
+                                        targetAddress, targetPrefetchAddress,
+                                        (strideReach * stride), stride);
                         ev = new MemEvent(getName(), targetPrefetchAddress, targetPrefetchAddress,
                                           Command::GetS, getCurrentSimTimeNano());
                         statPrefetchOpportunities->addData(1);
                     } else {
-                        output->verbose(CALL_INFO, 2, 0,
-                                        "Cancel prefetch issue, request exceeds physical page limit\n");
-                        output->verbose(CALL_INFO, 4, 0, "Target address: %"
-                        PRIx64
-                        ", page=%"
-                        PRIx64
-                        ", Prefetch address: %"
-                        PRIx64
-                        ", page=%"
-                        PRIx64
-                        "\n", targetAddress, targetAddressPhysPage, targetPrefetchAddress, targetPrefetchAddressPage);
+                        output->verbose(
+                            CALL_INFO, 2, 0,
+                            "Cancel prefetch issue, request exceeds physical page limit\n");
+                        output->verbose(CALL_INFO, 4, 0,
+                                        "Target address: %" PRIx64 ", page=%" PRIx64
+                                        ", Prefetch address: %" PRIx64 ", page=%" PRIx64 "\n",
+                                        targetAddress, targetAddressPhysPage, targetPrefetchAddress,
+                                        targetPrefetchAddressPage);
 
                         statPrefetchIssueCanceledByPageBoundary->addData(1);
-                        ev = NULL;
+                        ev = nullptr;
                     }
                 }
 
@@ -148,24 +135,22 @@ void StridePrefetcher::DetectStride() {
             }
         }
 
-        if (ev != NULL) {
+        if (ev != nullptr) {
             break;
         }
     }
 
-    if (ev != NULL) {
+    if (ev != nullptr) {
         std::vector<Event::HandlerBase *>::iterator callbackItr;
 
         Addr prefetchCacheLineBase = ev->getAddr() - (ev->getAddr() % blockSize);
         bool inHistory = false;
         const uint32_t currentHistCount = prefetchHistory->size();
 
-        output->verbose(CALL_INFO, 2, 0, "Checking prefetch history for cache line at base %"
-        PRIx64
-        ", valid prefetch history entries=%"
-        PRIu32
-        "\n", prefetchCacheLineBase,
-            currentHistCount);
+        output->verbose(CALL_INFO, 2, 0,
+                        "Checking prefetch history for cache line at base %" PRIx64
+                        ", valid prefetch history entries=%" PRIu32 "\n",
+                        prefetchCacheLineBase, currentHistCount);
 
         for (uint32_t i = 0; i < currentHistCount; ++i) {
             if (prefetchHistory->at(i) == prefetchCacheLineBase) {
@@ -192,8 +177,8 @@ void StridePrefetcher::DetectStride() {
                  callbackItr != registeredCallbacks.end(); callbackItr++) {
                 // Create a new read request, we cannot issue a write because the data will get
                 // overwritten and corrupt memory (even if we really do want to do a write)
-                MemEvent *newEv = new MemEvent(getName(), ev->getAddr(), ev->getAddr(),
-                                               Command::GetS, getCurrentSimTimeNano());
+                auto *newEv = new MemEvent(getName(), ev->getAddr(), ev->getAddr(), Command::GetS,
+                                           getCurrentSimTimeNano());
                 newEv->setSize(blockSize);
                 newEv->setPrefetchFlag(true);
 
@@ -203,18 +188,20 @@ void StridePrefetcher::DetectStride() {
             delete ev;
         } else {
             statPrefetchIssueCanceledByHistory->addData(1);
-            output->verbose(CALL_INFO, 2, 0,
-                            "Prefetch canceled - same cache line is found in the recent prefetch history.\n");
+            output->verbose(
+                CALL_INFO, 2, 0,
+                "Prefetch canceled - same cache line is found in the recent prefetch history.\n");
             delete ev;
         }
     }
 }
 
-StridePrefetcher::StridePrefetcher(Component *owner, Params &params) : CacheListener(owner,
-                                                                                     params) {
+StridePrefetcher::StridePrefetcher(Component *owner, Params &params)
+    : CacheListener(owner, params) {
     Output out("", 1, 0, Output::STDOUT);
     out.fatal(CALL_INFO, -1,
-              "%s, Error: SubComponent does not support legacy loadSubComponent call; use new calls (loadUserSubComponent or loadAnonymousSubComponent)\n",
+              "%s, Error: SubComponent does not support legacy loadSubComponent call; use new "
+              "calls (loadUserSubComponent or loadAnonymousSubComponent)\n",
               getName().c_str());
 }
 
@@ -223,7 +210,7 @@ StridePrefetcher::StridePrefetcher(ComponentId_t id, Params &params) : CacheList
 
     verbosity = params.find<int>("verbose", 0);
 
-    char *new_prefix = (char *) malloc(sizeof(char) * 128);
+    char *new_prefix = static_cast<char *>(malloc(sizeof(char) * 128));
     sprintf(new_prefix, "StridePrefetcher[%s | @f:@p:@l] ", getName().c_str());
     output = new Output(new_prefix, verbosity, 0, Output::STDOUT);
     free(new_prefix);
@@ -239,41 +226,35 @@ StridePrefetcher::StridePrefetcher(ComponentId_t id, Params &params) : CacheList
     recentAddrListCount = params.find<uint32_t>("address_count", 64);
     pageSize = params.find<uint64_t>("page_size", 4096);
 
-    uint32_t overrunPB = params.find<uint32_t>("overrun_page_boundaries", 0);
-    overrunPageBoundary = (overrunPB == 0) ? false : true;
+    auto overrunPB = params.find<uint32_t>("overrun_page_boundaries", 0);
+    overrunPageBoundary = overrunPB != 0;
 
     nextRecentAddressIndex = 0;
-    recentAddrList = (Addr *) malloc(sizeof(Addr) * recentAddrListCount);
+    recentAddrList = static_cast<Addr *>(malloc(sizeof(Addr) * recentAddrListCount));
 
     for (uint32_t i = 0; i < recentAddrListCount; ++i) {
-        recentAddrList[i] = (Addr) 0;
+        recentAddrList[i] = static_cast<Addr>(0);
     }
 
-    output->verbose(CALL_INFO, 1, 0, "StridePrefetcher created, cache line: %"
-    PRIu64
-    ", page size: %"
-    PRIu64
-    "\n",
-        blockSize, pageSize);
+    output->verbose(CALL_INFO, 1, 0,
+                    "StridePrefetcher created, cache line: %" PRIu64 ", page size: %" PRIu64 "\n",
+                    blockSize, pageSize);
 
     missEventsProcessed = 0;
     hitEventsProcessed = 0;
 
     statPrefetchOpportunities = registerStatistic<uint64_t>("prefetch_opportunities");
     statPrefetchEventsIssued = registerStatistic<uint64_t>("prefetches_issued");
-    statPrefetchIssueCanceledByPageBoundary = registerStatistic<uint64_t>(
-        "prefetches_canceled_by_page_boundary");
-    statPrefetchIssueCanceledByHistory = registerStatistic<uint64_t>(
-        "prefetches_canceled_by_history");
+    statPrefetchIssueCanceledByPageBoundary =
+        registerStatistic<uint64_t>("prefetches_canceled_by_page_boundary");
+    statPrefetchIssueCanceledByHistory =
+        registerStatistic<uint64_t>("prefetches_canceled_by_history");
 }
 
-StridePrefetcher::~StridePrefetcher() {
-    free(recentAddrList);
-}
+StridePrefetcher::~StridePrefetcher() { free(recentAddrList); }
 
 void StridePrefetcher::registerResponseCallback(Event::HandlerBase *handler) {
     registeredCallbacks.push_back(handler);
 }
 
-void StridePrefetcher::printStats(Output &out) {
-}
+void StridePrefetcher::printStats(Output &out) {}

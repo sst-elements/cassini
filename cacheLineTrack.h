@@ -13,86 +13,79 @@
 // information, see the LICENSE file in the top level directory of the
 // distribution.
 
-
 #ifndef _H_SST_ADDR_HISTOGRAMMER
 #define _H_SST_ADDR_HISTOGRAMMER
 
-#include <bitset>
-
-#include <sst/core/event.h>
-#include <sst/core/sst_types.h>
-#include <sst/core/component.h>
-#include <sst/core/link.h>
-#include <sst/core/timeConverter.h>
-#include <sst/core/output.h>
-#include <memEvent.h>
 #include <cacheListener.h>
+#include <memEvent.h>
+#include <sst/core/component.h>
+#include <sst/core/event.h>
+#include <sst/core/link.h>
+#include <sst/core/output.h>
+#include <sst/core/sst_types.h>
+#include <sst/core/timeConverter.h>
 
+#include <bitset>
 
 using namespace SST;
 using namespace SST::MemHierarchy;
 using namespace std;
 
 namespace SST {
-    namespace Cassini {
+namespace Cassini {
 
-        struct lineTrack {
-            bitset<8> touched; // currently hardcoded for 64B (8-word) lines
-            SimTime_t entered; // when the line entered the cache
-            uint64_t reads;
-            uint64_t writes;
+struct lineTrack {
+    bitset<8> touched;  // currently hardcoded for 64B (8-word) lines
+    SimTime_t entered;  // when the line entered the cache
+    uint64_t reads;
+    uint64_t writes;
 
-            lineTrack(SimTime_t now) : touched(0), entered(now), reads(0), writes(0) { ; }
-        };
+    explicit lineTrack(SimTime_t now) : touched(0), entered(now), reads(0), writes(0) { ; }
+};
 
-        class cacheLineTrack : public SST::MemHierarchy::CacheListener {
-        public:
-            cacheLineTrack(Component *, Params &params); // Legacy
-            cacheLineTrack(ComponentId_t, Params &params);
+class cacheLineTrack : public SST::MemHierarchy::CacheListener {
+   public:
+    cacheLineTrack(Component * /*owner*/, Params &params);  // Legacy
+    cacheLineTrack(ComponentId_t /*id*/, Params &params);
 
-            ~cacheLineTrack() {};
+    ~cacheLineTrack() override = default;
+    ;
 
-            void notifyAccess(const CacheListenerNotification &notify);
+    void notifyAccess(const CacheListenerNotification &notify) override;
 
-            void registerResponseCallback(Event::HandlerBase *handler);
+    void registerResponseCallback(Event::HandlerBase *handler) override;
 
-            SST_ELI_REGISTER_SUBCOMPONENT_DERIVED(
-                cacheLineTrack,
-            "cassini",
-            "cacheLineTrack",
-            SST_ELI_ELEMENT_VERSION(1,0,0),
-            "Tracks cacheline usage before eviction",
-            SST::MemHierarchy::CacheListener
-            )
+    SST_ELI_REGISTER_SUBCOMPONENT_DERIVED(cacheLineTrack, "cassini", "cacheLineTrack",
+                                          SST_ELI_ELEMENT_VERSION(1, 0, 0),
+                                          "Tracks cacheline usage before eviction",
+                                          SST::MemHierarchy::CacheListener)
 
-            SST_ELI_DOCUMENT_PARAMS(
-            { "addr_cutoff", "Addresses above this cutoff won't be recorded", "1TB" }
-            )
+    SST_ELI_DOCUMENT_PARAMS({"addr_cutoff", "Addresses above this cutoff won't be recorded", "1TB"})
 
-            SST_ELI_DOCUMENT_STATISTICS(
-            { "hist_reads_log2", "Histogram of log2(cacheline reads before eviction)", "counts", 1 },
-            { "hist_writes_log2", "Histogram of log2(cacheline write before eviction)", "counts", 1 },
-            { "hist_age_log2", "Histogram of log2(cacheline ages before eviction)", "counts", 1 },
-            { "hist_word_accesses", "Histogram of cacheline words accessed before eviction", "counts", 1 },
-            { "evicts", "Number of evictions seen", "counts", 1 }
-            )
+    SST_ELI_DOCUMENT_STATISTICS(
+        {"hist_reads_log2", "Histogram of log2(cacheline reads before eviction)", "counts", 1},
+        {"hist_writes_log2", "Histogram of log2(cacheline write before eviction)", "counts", 1},
+        {"hist_age_log2", "Histogram of log2(cacheline ages before eviction)", "counts", 1},
+        {"hist_word_accesses", "Histogram of cacheline words accessed before eviction", "counts",
+         1},
+        {"evicts", "Number of evictions seen", "counts", 1})
 
-        private:
-            typedef unordered_map <Addr, lineTrack> cacheTrack_t;
-            cacheTrack_t cacheLines;
-            std::vector<Event::HandlerBase *> registeredCallbacks;
-            bool captureVirtual;
-            Addr cutoff; // Don't bin addresses above the cutoff. Helps avoid creating
-            //  histogram entries for the vast address range between the
-            //  heap and the stack.
-            Statistic <Addr> *rdHisto;
-            Statistic <Addr> *wrHisto;
-            Statistic <uint> *useHisto;
-            Statistic <SimTime_t> *ageHisto;
-            Statistic <uint> *evicts;
-        };
+   private:
+    typedef unordered_map<Addr, lineTrack> cacheTrack_t;
+    cacheTrack_t cacheLines;
+    std::vector<Event::HandlerBase *> registeredCallbacks;
+    bool captureVirtual{};
+    Addr cutoff{};  // Don't bin addresses above the cutoff. Helps avoid creating
+    //  histogram entries for the vast address range between the
+    //  heap and the stack.
+    Statistic<Addr> *rdHisto{};
+    Statistic<Addr> *wrHisto{};
+    Statistic<uint> *useHisto{};
+    Statistic<SimTime_t> *ageHisto{};
+    Statistic<uint> *evicts{};
+};
 
-    }
-}
+}  // namespace Cassini
+}  // namespace SST
 
 #endif

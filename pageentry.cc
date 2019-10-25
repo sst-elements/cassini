@@ -13,11 +13,10 @@
 // information, see the LICENSE file in the top level directory of the
 // distribution.
 
+#include <sst/core/sst_config.h>  // unused header
 
-#include <sst/core/sst_config.h>
-
-#include <memEvent.h>
 #include "pageentry.h"
+#include <memEvent.h>
 
 using namespace std;
 using namespace SST;
@@ -33,38 +32,20 @@ CassiniPageEntry::CassiniPageEntry(Addr vPageStart, Addr pPageStart, uint64_t pa
     allowWrite = true;
 }
 
-bool CassiniPageEntry::readAllowed() {
-    return allowRead;
-}
+auto CassiniPageEntry::readAllowed() -> bool { return allowRead; }
 
-bool CassiniPageEntry::writeAllowed() {
-    return allowWrite;
-}
+auto CassiniPageEntry::writeAllowed() -> bool { return allowWrite; }
 
-bool CassiniPageEntry::execAllowed() {
-    return allowExec;
-}
+auto CassiniPageEntry::execAllowed() -> bool { return allowExec; }
 
-void CassiniPageEntry::markReadAllowed() {
-    allowRead = true;
-}
+void CassiniPageEntry::markReadAllowed() { allowRead = true; }
 
-void CassiniPageEntry::markWriteAllowed() {
-    allowWrite = true;
-}
+void CassiniPageEntry::markWriteAllowed() { allowWrite = true; }
 
-void CassiniPageEntry::markExecAllowed() {
-    allowExec = true;
-}
+void CassiniPageEntry::markExecAllowed() { allowExec = true; }
 
-Addr CassiniPageEntry::getVirtualPageStart() {
-    return virtualPageStart;
-}
+auto CassiniPageEntry::getVirtualPageStart() -> Addr { return virtualPageStart; }
 
-Addr CassiniPageEntry::getPhysicalPageStart() {
-    return physicalPageStart;
-}
+auto CassiniPageEntry::getPhysicalPageStart() -> Addr { return physicalPageStart; }
 
-uint64_t CassiniPageEntry::getPageLength() {
-    return pageLength;
-}
+auto CassiniPageEntry::getPageLength() -> uint64_t { return pageLength; }

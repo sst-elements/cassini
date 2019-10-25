@@ -13,70 +13,61 @@
 // information, see the LICENSE file in the top level directory of the
 // distribution.
 
-
 #ifndef _H_SST_NEXT_BLOCK_PREFETCH
 #define _H_SST_NEXT_BLOCK_PREFETCH
 
-#include <vector>
-
-#include <sst/core/event.h>
-#include <sst/core/sst_types.h>
-#include <sst/core/component.h>
-#include <sst/core/link.h>
-#include <sst/core/timeConverter.h>
-#include <memEvent.h>
 #include <cacheListener.h>
+#include <memEvent.h>
+#include <sst/core/component.h>
+#include <sst/core/event.h>
+#include <sst/core/link.h>
+#include <sst/core/sst_types.h>
+#include <sst/core/timeConverter.h>
+
+#include <vector>
 
 using namespace SST;
 using namespace SST::MemHierarchy;
 using namespace std;
 
 namespace SST {
-    namespace Cassini {
+namespace Cassini {
 
-        class NextBlockPrefetcher : public SST::MemHierarchy::CacheListener {
-        public:
-            NextBlockPrefetcher(Component *owner, Params &params); // Legacy
-            NextBlockPrefetcher(ComponentId_t id, Params &params);
+class NextBlockPrefetcher : public SST::MemHierarchy::CacheListener {
+   public:
+    NextBlockPrefetcher(Component *comp, Params &params);  // Legacy
+    NextBlockPrefetcher(ComponentId_t id, Params &params);
 
-            ~NextBlockPrefetcher();
+    ~NextBlockPrefetcher() override;
 
-            void notifyAccess(const CacheListenerNotification &notify);
+    void notifyAccess(const CacheListenerNotification &notify) override;
 
-            void registerResponseCallback(Event::HandlerBase *handler);
+    void registerResponseCallback(Event::HandlerBase *handler) override;
 
-            void printStats(Output &out);
+    void printStats(Output &out) override;
 
-            SST_ELI_REGISTER_SUBCOMPONENT_DERIVED(
-                NextBlockPrefetcher,
-            "cassini",
-            "NextBlockPrefetcher",
-            SST_ELI_ELEMENT_VERSION(1,0,0),
-            "Next Block Prefetcher",
-            SST::MemHierarchy::CacheListener
-            )
+    SST_ELI_REGISTER_SUBCOMPONENT_DERIVED(NextBlockPrefetcher, "cassini", "NextBlockPrefetcher",
+                                          SST_ELI_ELEMENT_VERSION(1, 0, 0), "Next Block Prefetcher",
+                                          SST::MemHierarchy::CacheListener)
 
-            SST_ELI_DOCUMENT_PARAMS(
-            { "cache_line_size", "Size of the cache line the prefetcher is attached to", "64" }
-            )
+    SST_ELI_DOCUMENT_PARAMS({"cache_line_size",
+                             "Size of the cache line the prefetcher is attached to", "64"})
 
-            SST_ELI_DOCUMENT_STATISTICS(
-            { "prefetches_issued", "Number of prefetch requests issued", "prefetches", 1 },
-            { "miss_events_processed", "Number of cache misses received", "misses", 2 },
-            { "hit_events_processed", "Number of cache hits received", "hits", 2 }
-            )
+    SST_ELI_DOCUMENT_STATISTICS(
+        {"prefetches_issued", "Number of prefetch requests issued", "prefetches", 1},
+        {"miss_events_processed", "Number of cache misses received", "misses", 2},
+        {"hit_events_processed", "Number of cache hits received", "hits", 2})
 
-        private:
-            std::vector<Event::HandlerBase *> registeredCallbacks;
-            uint64_t blockSize;
+   private:
+    std::vector<Event::HandlerBase *> registeredCallbacks;
+    uint64_t blockSize{};
 
-            Statistic <uint64_t> *statPrefetchEventsIssued;
-            Statistic <uint64_t> *statMissEventsProcessed;
-            Statistic <uint64_t> *statHitEventsProcessed;
+    Statistic<uint64_t> *statPrefetchEventsIssued{};
+    Statistic<uint64_t> *statMissEventsProcessed{};
+    Statistic<uint64_t> *statHitEventsProcessed{};
+};
 
-        };
-
-    }
-}
+}  // namespace Cassini
+}  // namespace SST
 
 #endif

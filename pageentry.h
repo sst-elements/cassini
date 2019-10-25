@@ -13,57 +13,54 @@
 // information, see the LICENSE file in the top level directory of the
 // distribution.
 
-
 #ifndef _H_CASSINI_PAGE_ENTRY
 #define _H_CASSINI_PAGE_ENTRY
 
-#include <sst/core/event.h>
-#include <sst/core/sst_types.h>
-#include <sst/core/component.h>
-#include <sst/core/link.h>
-#include <sst/core/timeConverter.h>
 #include <memEvent.h>
+#include <sst/core/component.h>
+#include <sst/core/event.h>
+#include <sst/core/link.h>
+#include <sst/core/sst_types.h>
+#include <sst/core/timeConverter.h>
 
 using namespace SST;
 using namespace SST::MemHierarchy;
 
 namespace SST {
-    namespace Cassini {
+namespace Cassini {
 
-        class CassiniPageEntry {
+class CassiniPageEntry {
+   public:
+    CassiniPageEntry(Addr vPageStart, Addr pPageStart, uint64_t pageLength);
 
-        public:
-            CassiniPageEntry(Addr vPageStart, Addr pPageStart, uint64_t pageLength);
+    auto readAllowed() -> bool;
 
-            bool readAllowed();
+    auto writeAllowed() -> bool;
 
-            bool writeAllowed();
+    auto execAllowed() -> bool;
 
-            bool execAllowed();
+    auto getVirtualPageStart() -> Addr;
 
-            Addr getVirtualPageStart();
+    auto getPhysicalPageStart() -> Addr;
 
-            Addr getPhysicalPageStart();
+    auto getPageLength() -> uint64_t;
 
-            uint64_t getPageLength();
+    void markReadAllowed();
 
-            void markReadAllowed();
+    void markWriteAllowed();
 
-            void markWriteAllowed();
+    void markExecAllowed();
 
-            void markExecAllowed();
+   private:
+    Addr virtualPageStart;
+    Addr physicalPageStart;
+    uint64_t pageLength;
+    bool allowExec;
+    bool allowRead;
+    bool allowWrite;
+};
 
-        private:
-            Addr virtualPageStart;
-            Addr physicalPageStart;
-            uint64_t pageLength;
-            bool allowExec;
-            bool allowRead;
-            bool allowWrite;
-
-        };
-
-    }
-}
+}  // namespace Cassini
+}  // namespace SST
 
 #endif

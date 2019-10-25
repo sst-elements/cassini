@@ -16,13 +16,12 @@
 // File:   addrHistogrammer.cc
 // Author: Jagan Jayaraj (derived from Cassini prefetcher modules written by Si Hammond)
 
-#include <sst/core/sst_config.h>
 #include "addrHistogrammer.h"
 
-#include <stdint.h>
+#include <sst/core/sst_config.h>
+#include <sst/core/unitAlgebra.h>
 
 #include "sst/core/params.h"
-#include <sst/core/unitAlgebra.h>
 
 using namespace SST;
 using namespace SST::MemHierarchy;
@@ -33,21 +32,20 @@ AddrHistogrammer::AddrHistogrammer(ComponentId_t id, Params &params) : CacheList
     UnitAlgebra cutoff_u(cutoff_s);
     cutoff = cutoff_u.getRoundedValue();
 
-    captureVirtual = params.find<bool>("virtual_addr", 0);
+    captureVirtual = params.find<bool>("virtual_addr", nullptr);
 
     rdHisto = registerStatistic<Addr>("histogram_reads");
     wrHisto = registerStatistic<Addr>("histogram_writes");
-
 }
 
-AddrHistogrammer::AddrHistogrammer(Component *owner, Params &params) : CacheListener(owner,
-                                                                                     params) {
+AddrHistogrammer::AddrHistogrammer(Component *owner, Params &params)
+    : CacheListener(owner, params) {
     Output out("", 1, 0, Output::STDOUT);
     out.fatal(CALL_INFO, -1,
-              "%s, Error: SubComponent does not support legacy loadSubComponent call; use new calls (loadUserSubComponent or loadAnonymousSubComponent)\n",
+              "%s, Error: SubComponent does not support legacy loadSubComponent call; use new "
+              "calls (loadUserSubComponent or loadAnonymousSubComponent)\n",
               getName().c_str());
 }
-
 
 void AddrHistogrammer::notifyAccess(const CacheListenerNotification &notify) {
     const NotifyAccessType notifyType = notify.getAccessType();
@@ -60,8 +58,9 @@ void AddrHistogrammer::notifyAccess(const CacheListenerNotification &notify) {
         vaddr = notify.getPhysicalAddress();
     }
 
-
-    if (notifyType == EVICT || notifyResType != MISS || vaddr >= cutoff) return;
+    if (notifyType == EVICT || notifyResType != MISS || vaddr >= cutoff) {
+        return;
+    }
 
     // // Remove the offset within a bin
     // Addr baseAddr = vaddr & binMask;
